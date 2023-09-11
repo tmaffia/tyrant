@@ -1,0 +1,32 @@
+alerts:
+- rule: DEPLOYMENT_FAILED
+- rule: DOMAIN_FAILED
+features:
+- buildpack-stack=ubuntu-22
+ingress: {}
+name: stop-bot
+region: nyc
+workers:
+- environment_slug: go
+  envs:
+  - key: STOP_BOT_TOKEN
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:C/fxjGSHmedb+nqPPqiiIHbRsal20j29:zt/Hy6RmeqydEMyvh+HZ14uSioPhtiEnO0D6XU4K6ratJK/qHzeFjAt3vepBV5uNhMuuA0c1i7MMzQYV4/Lyi2zDIFD8UbDLcASa/n5EVGJcjOJ6MTy75Q==]
+  - key: STOP_BOT_APP_ID
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:ORH5uUJ+l4GZt05WyYRQVBCh+zB/6yYN:vZNh+l48ygjC+/Jbp8qIw71MciykBReJoUIqm2fpXRtKdvI=]
+  - key: STOP_BOT_PUBLIC_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:WNS0AjtvzIvLvOo+5fv9xup5thfuTbkx:HRMEecIwQyihxy0WonOJFXSl7rTs6cTx0ud0h27o+Przh6+D5E4NXEXJ2l0EYz31/K+rkVhbIpcMknpjtHJ5tOwvgQ681MhXmBekrlAL1bA=]
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: tmaffia/stop-bot
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  name: stop-bot
+  run_command: bin/stop-bot
+  source_dir: /
