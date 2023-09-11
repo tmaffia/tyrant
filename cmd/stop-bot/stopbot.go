@@ -43,6 +43,7 @@ func main() {
 
 	if err != nil {
 		log.Println("Error opening Discord session: ", err)
+		return
 	}
 
 	log.Println("Stop Bot is now running. Press CTRL-C to exit.")

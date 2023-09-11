@@ -16,13 +16,13 @@ build-local: clean
 	GOARCH=amd64 GOOS=windows go build -o bin/${BINARY_NAME}.exe ./...
 
 build-container: clean
-	docker build -f build/Dockerfile -t ${BINARY_NAME}:${TAG} .
+	docker build -f build/Dockerfile -t szerated/${BINARY_NAME}:${TAG} .
 
 run: build-local
 	bin/${BINARY_NAME}-linux
 
 run-container: build-container
-	docker run --env-file .env -it ${BINARY_NAME}:${TAG}
+	docker run --env-file .env -it szerated/${BINARY_NAME}:${TAG}
 
 dep:
 	go mod download
