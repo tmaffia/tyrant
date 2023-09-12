@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := build-local
 
-BINARY_NAME="stop-bot"
+BINARY_NAME="discord-bots"
 
 
 clean:
