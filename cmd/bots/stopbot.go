@@ -4,48 +4,41 @@ import (
 	"errors"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 type StopBot struct {
-	botToken  string
-	appID     string
-	publicKey string
-	intents   discordgo.Intent
+	botToken           string
+	appID              string
+	publicKey          string
+	guildID            string
+	intents            discordgo.Intent
+	removeCommands     bool
+	registeredCommands []*discordgo.ApplicationCommand
 }
 
-func initStopBot() (StopBot, error) {
+func initStopBot() (*StopBot, error) {
 	sb := StopBot{
-		botToken:  os.Getenv("STOP_BOT_TOKEN"),
-		appID:     os.Getenv("STOP_BOT_APP_ID"),
-		publicKey: os.Getenv("STOP_BOT_PUBLIC_KEY"),
-		intents:   discordgo.IntentDirectMessages,
+		botToken:       os.Getenv("STOP_BOT_TOKEN"),
+		appID:          os.Getenv("STOP_BOT_APP_ID"),
+		publicKey:      os.Getenv("STOP_BOT_PUBLIC_KEY"),
+		guildID:        "",
+		intents:        discordgo.IntentDirectMessages,
+		removeCommands: true,
 	}
-	return sb, nil
+	return &sb, nil
 }
 
-func (b StopBot) message(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == s.State.User.ID {
-		return
-	}
-
-	if m.Content == "ping" {
-		s.ChannelMessageSend(m.ChannelID, "Pong!")
-	}
-
-	if m.Content == "pong" {
-		s.ChannelMessageSend(m.ChannelID, "Ping!")
-	}
-}
-
-func (sb StopBot) run() error {
+func (sb StopBot) run() (*discordgo.Session, error) {
 
 	if sb.botToken == "" ||
 		sb.appID == "" ||
 		sb.publicKey == "" {
 
-		return errors.New("ENV Variables are not set properly")
+		return nil, errors.New("ENV Variables are not set properly")
 	}
 
 	s, err := discordgo.New("Bot " + sb.botToken)
@@ -54,18 +47,58 @@ func (sb StopBot) run() error {
 		log.Println(err.Error())
 	}
 
-	s.AddHandler(sb.message)
+	s.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+		log.Printf("Logged in as: %v#%v", s.State.User.Username, s.State.User.Discriminator)
+	})
 
-	s.Identify.Intents = discordgo.IntentDirectMessages
+	s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
+			h(s, i)
+		}
+	})
 
+	// s.Identify.Intents = sb.intents
+
+	sb.registeredCommands = make([]*discordgo.ApplicationCommand, len(commands))
 	err = s.Open()
-
 	if err != nil {
-		return errors.New("error opening Discord session for stop bot")
+		return nil, errors.New("error opening Discord session for stop bot")
+	}
+
+	for i, v := range commands {
+		cmd, err := s.ApplicationCommandCreate(s.State.User.ID, sb.guildID, v)
+		if err != nil {
+			log.Panicf("Cannot create '%v' command: %v", v.Name, err)
+		}
+		sb.registeredCommands[i] = cmd
 	}
 
 	log.Println("Stop Bot is now running")
-	return nil
+	return s, nil
+}
+
+func (sb StopBot) KillStopBot(s *discordgo.Session) {
+	if sb.removeCommands {
+		log.Println("Removing commands...")
+
+		for _, v := range sb.registeredCommands {
+			log.Println("Unregistering: " + v.Name)
+			err := s.ApplicationCommandDelete(s.State.User.ID, sb.guildID, v.ID)
+			if err != nil {
+				log.Panicf("Cannot delete '%v' command: %v", v.Name, err)
+			}
+		}
+	}
+
+	deleteCommands := []string{}
+	log.Println(deleteCommands)
+	c, _ := s.ApplicationCommands(sb.appID, sb.guildID)
+	for _, cmd := range c {
+		s.ApplicationCommandDelete(s.State.User.ID, sb.guildID, cmd.ID)
+		log.Println(cmd)
+	}
+
+	log.Println("Gracefully shutting down.")
 }
 
 func RunStopBot() {
@@ -75,5 +108,18 @@ func RunStopBot() {
 		log.Fatal(err.Error())
 	}
 
-	sb.run()
+	s, err := sb.run()
+
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	defer s.Close()
+
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+	log.Println("Press Ctrl+C to exit")
+	<-sc
+
+	sb.KillStopBot(s)
 }
