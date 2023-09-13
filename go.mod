@@ -1,4 +1,4 @@
-module discord-stop
+module discord-bots
 
 require (
 	github.com/bwmarrin/discordgo v0.27.1

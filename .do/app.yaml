@@ -24,9 +24,9 @@ workers:
   github:
     branch: main
     deploy_on_push: true
-    repo: tmaffia/stop-bot
+    repo: tmaffia/discord-bots
   instance_count: 1
   instance_size_slug: basic-xxs
-  name: stop-bot
-  run_command: bin/stop-bot
+  name: discord-bots
+  run_command: bin/bots
   source_dir: /
