@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -46,28 +47,22 @@ var (
 			// This example stores the provided arguments in an []interface{}
 			// which will be used to format the bot's response
 			margs := make([]interface{}, 0, len(options))
-			msgformat := "You learned how to use command options! " +
-				"Take a look at the value(s) you entered:\n"
+			msgformat := "You have Stopped a User! " +
+				"They must have fucking sucked\n"
 
-			var user *discordgo.User
-			var duration int64
-
+			var u *discordgo.User
+			var dur int64
 			if opt, ok := optionMap["user"]; ok {
-				user = opt.UserValue(nil)
-				margs = append(margs, opt.UserValue(nil).ID)
-				msgformat += "> user: <@%s>\n"
+				u = opt.UserValue(nil)
 			}
 
 			if opt, ok := optionMap["duration"]; ok {
-				duration = opt.IntValue()
-				margs = append(margs, opt.IntValue())
-				msgformat += "> duration: %d\n"
+				dur = opt.IntValue()
 			} else {
-				duration = 5
+				dur = 5
 			}
 
-			log.Println(user)
-			log.Println(duration)
+			go stopUser(s, i, u, dur)
 
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				// Ignore type for now, they will be discussed in "responses"
@@ -82,3 +77,23 @@ var (
 		},
 	}
 )
+
+func stopUser(s *discordgo.Session, i *discordgo.InteractionCreate,
+	u *discordgo.User, dur int64) {
+
+	d, err := time.ParseDuration(fmt.Sprintf("%dm", dur))
+	if err != nil {
+		log.Println(err)
+	}
+
+	g, _ := s.Guild(i.GuildID)
+	m, err := s.GuildMember(g.ID, u.ID)
+	if err != nil {
+		log.Println(err)
+	}
+
+	// s.GuildMemberNickname(m.GuildID, m.User.ID, "STOP "+m.Nick)
+	s.ChannelMessageSend(i.ChannelID, "<@"+m.User.ID+"> has been put in timeout for "+fmt.Sprintf("%d", dur)+" minutes")
+	time.Sleep(d)
+	s.ChannelMessageSend(i.ChannelID, "<@"+m.User.ID+"> timeout has ended. Be less annoying next time...")
+}

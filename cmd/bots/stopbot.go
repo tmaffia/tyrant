@@ -37,12 +37,10 @@ func (sb StopBot) run() (*discordgo.Session, error) {
 	if sb.botToken == "" ||
 		sb.appID == "" ||
 		sb.publicKey == "" {
-
 		return nil, errors.New("ENV Variables are not set properly")
 	}
 
 	s, err := discordgo.New("Bot " + sb.botToken)
-
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -56,8 +54,6 @@ func (sb StopBot) run() (*discordgo.Session, error) {
 			h(s, i)
 		}
 	})
-
-	// s.Identify.Intents = sb.intents
 
 	sb.registeredCommands = make([]*discordgo.ApplicationCommand, len(commands))
 	err = s.Open()
@@ -90,12 +86,9 @@ func (sb StopBot) KillStopBot(s *discordgo.Session) {
 		}
 	}
 
-	deleteCommands := []string{}
-	log.Println(deleteCommands)
 	c, _ := s.ApplicationCommands(sb.appID, sb.guildID)
 	for _, cmd := range c {
 		s.ApplicationCommandDelete(s.State.User.ID, sb.guildID, cmd.ID)
-		log.Println(cmd)
 	}
 
 	log.Println("Gracefully shutting down.")
@@ -103,13 +96,11 @@ func (sb StopBot) KillStopBot(s *discordgo.Session) {
 
 func RunStopBot() {
 	sb, err := initStopBot()
-
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
 	s, err := sb.run()
-
 	if err != nil {
 		log.Fatal(err.Error())
 	}
