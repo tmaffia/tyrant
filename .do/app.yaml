@@ -12,15 +12,23 @@ workers:
   - key: STOP_BOT_TOKEN
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-    value: EV[1:gVv6dqwANoYlBcdY8E4ZGXYA9vz86lnA:XY3mhJbm/IzMxH8SRdol2aZgMX2OJY9g9HXB9GPOcM8YrMyDiX3SBYy6Q+mdDFUJj0OT7Jm2i2ScRofDtAkPLV0fsOT4fFgsN+T3/TszN7NF1B4Q7jTjpg==]
-  - key: STOP_BOT_PUBLIC_KEY
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-    value: EV[1:5eQLpAEhcScRXtRuK/skIQCMzZ7FGluJ:1mN7SMCjZ1lgpSWAQcwpxyub4Xiqi9gCcDxYuep2vt4gTEtnB4xz+nTGaO6vK9HH0eB6DB0bD6Wz55Q6HXYOzYWHqeb4zsb6wdIE+5dnNSk=]
+    value: EV[1:H0CS4rZAacPgu4hnaxcH6Ig4MYmeVnrE:ou4kSvVuAwrzG56fu4vwhVrW5UnljPhblxnmjVfbUzDU8yGwknUGk/zIWTvBS5pLdKCzWVdIKLbq3WIohC9d3ZP3Pbjtk85LpjYbJl43x375hjL3Id0yJw==]
   - key: STOP_BOT_APP_ID
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-    value: EV[1:mU6SKzhO71lusReJkstUqu2hzRq98+3g:b+lEA72SardOZdqBc5fkTKqguNz1C+HOFRmyOiRJjB+y5p0=]
+    value: EV[1:6B0twRHHq/d0FDOggLw9RSFtkKcrs2mj:rP7bYw34BDtSoGveGGC3MK/BGSMHkjWQogshjLsxlH+kFcw=]
+  - key: STOP_BOT_PUBLIC_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:cgwxO3nUnaoawlnwRw+zJlffRORLXNr2:RoDnyhXsGeqMqohHaksXxGi+vic10iAFUBwkrMUUbXWyecVJuwACEg+kATPAuXLvhIjgc1J/z/9T2ygdFZuyAR3y4mO3H+aW4lz5bxsrcFc=]
+  - key: STOP_BOT_STOPPED_ROLE_ID
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:6qtOIwrQ1Bl+Qzs7lT/XD5ZW0v4Yb6fY:cU3xu0SVYqkRKn2qWDZS8vTb4rtHXbQKSPYawypiI7ve/pg=]
+  - key: GUILD_ID
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:2Q9KRiBQ4JtJUDPOmdpZvoBPjqFqPFvo:wdkhf3pN6PdwUXaLbM92J0YDsQGo0tUTUzHZ4Gux+aXRjQ==]
   github:
     branch: main
     deploy_on_push: true
