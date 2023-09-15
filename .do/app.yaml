@@ -4,31 +4,31 @@ alerts:
 features:
 - buildpack-stack=ubuntu-22
 ingress: {}
-name: stop-bot
+name: discord-bots
 region: nyc
 workers:
-- environment_slug: go
+- dockerfile_path: Dockerfile
   envs:
   - key: STOP_BOT_TOKEN
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-    value: EV[1:H0CS4rZAacPgu4hnaxcH6Ig4MYmeVnrE:ou4kSvVuAwrzG56fu4vwhVrW5UnljPhblxnmjVfbUzDU8yGwknUGk/zIWTvBS5pLdKCzWVdIKLbq3WIohC9d3ZP3Pbjtk85LpjYbJl43x375hjL3Id0yJw==]
+    value: EV[1:2wFdeW80LRz+VN8B2QEDIHCgb+as3Lmv:8/S5LVFxuEj7/1Pp+wlssQUj17Bft4sSRr2y24IGNwQfurHFf5ag3dzf9d8ONlOuxpxaMOZLVo031TR3S5S6+WhjE90yA9gwE8W0epA0QmsSulQ55P/OwQ==]
   - key: STOP_BOT_APP_ID
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-    value: EV[1:6B0twRHHq/d0FDOggLw9RSFtkKcrs2mj:rP7bYw34BDtSoGveGGC3MK/BGSMHkjWQogshjLsxlH+kFcw=]
+    value: EV[1:XMtpWywLpwpKewyktso7X57qR371eLe1:8KupIOjCYAeZauKesZxxkwbFo8xB0HExPkWqVhkrl7kPM2M=]
   - key: STOP_BOT_PUBLIC_KEY
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-    value: EV[1:cgwxO3nUnaoawlnwRw+zJlffRORLXNr2:RoDnyhXsGeqMqohHaksXxGi+vic10iAFUBwkrMUUbXWyecVJuwACEg+kATPAuXLvhIjgc1J/z/9T2ygdFZuyAR3y4mO3H+aW4lz5bxsrcFc=]
+    value: EV[1:vFR21IU+H7zeOrctKw7LZocYyTVo8oHw:tlQXEPxuaB7qJd4UYQTeqJ7KPlXjo2zYfs4jvytzvaFmn1PjDS4WnOBmAtbgTQisXnN7evSFfHC44YMsCC1CiFqvQs6HwpOAjO1vDFU3DLI=]
   - key: STOP_BOT_STOPPED_ROLE_ID
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-    value: EV[1:6qtOIwrQ1Bl+Qzs7lT/XD5ZW0v4Yb6fY:cU3xu0SVYqkRKn2qWDZS8vTb4rtHXbQKSPYawypiI7ve/pg=]
+    value: EV[1:bC8jWhcJIy8tLmyHgjn/NiU55BAqAz+x:vtOxuwVOSZAE+YW764qRO4BjrsJJ9+a1942r7IhF0lSsiNs=]
   - key: GUILD_ID
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-    value: EV[1:2Q9KRiBQ4JtJUDPOmdpZvoBPjqFqPFvo:wdkhf3pN6PdwUXaLbM92J0YDsQGo0tUTUzHZ4Gux+aXRjQ==]
+    value: EV[1:rJw8mx39cuGWQij1TUj0X18nbuyauB8X:opo5ala6x4xEVeHvdFNsBz+QnMlISdF89km+jM+jD790BQ==]
   github:
     branch: main
     deploy_on_push: true
@@ -36,5 +36,4 @@ workers:
   instance_count: 1
   instance_size_slug: basic-xxs
   name: discord-bots
-  run_command: bin/bots
   source_dir: /
