@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -22,6 +23,10 @@ type StopBot struct {
 }
 
 func initStopBot() *StopBot {
+	removeCommands, err := strconv.ParseBool(os.Getenv("REMOVE_COMMANDS"))
+	if err != nil {
+		removeCommands = false
+	}
 	sb := StopBot{
 		botToken:       os.Getenv("STOP_BOT_TOKEN"),
 		appID:          os.Getenv("STOP_BOT_APP_ID"),
@@ -29,7 +34,7 @@ func initStopBot() *StopBot {
 		guildID:        "",
 		stoppedRoleID:  os.Getenv("STOP_BOT_STOPPED_ROLE_ID"),
 		intents:        discordgo.IntentDirectMessages,
-		removeCommands: true,
+		removeCommands: removeCommands,
 	}
 	return &sb
 }
@@ -81,18 +86,11 @@ func (sb StopBot) KillStopBot(s *discordgo.Session) {
 	if sb.removeCommands {
 		log.Println("Removing commands...")
 
-		for _, v := range sb.registeredCommands {
-			log.Println("Unregistering: " + v.Name)
-			err := s.ApplicationCommandDelete(s.State.User.ID, sb.guildID, v.ID)
-			if err != nil {
-				log.Panicf("Cannot delete '%v' command: %v", v.Name, err)
-			}
+		c, _ := s.ApplicationCommands(sb.appID, sb.guildID)
+		for _, cmd := range c {
+			log.Println("Unregistering: " + cmd.Name)
+			s.ApplicationCommandDelete(s.State.User.ID, sb.guildID, cmd.ID)
 		}
-	}
-
-	c, _ := s.ApplicationCommands(sb.appID, sb.guildID)
-	for _, cmd := range c {
-		s.ApplicationCommandDelete(s.State.User.ID, sb.guildID, cmd.ID)
 	}
 
 	log.Println("Gracefully shutting down.")
