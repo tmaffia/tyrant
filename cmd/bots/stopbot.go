@@ -15,22 +15,26 @@ type StopBot struct {
 	appID              string
 	publicKey          string
 	guildID            string
+	stoppedRoleID      string
 	intents            discordgo.Intent
 	removeCommands     bool
 	registeredCommands []*discordgo.ApplicationCommand
 }
 
-func initStopBot() (*StopBot, error) {
+func initStopBot() *StopBot {
 	sb := StopBot{
 		botToken:       os.Getenv("STOP_BOT_TOKEN"),
 		appID:          os.Getenv("STOP_BOT_APP_ID"),
 		publicKey:      os.Getenv("STOP_BOT_PUBLIC_KEY"),
 		guildID:        "",
+		stoppedRoleID:  os.Getenv("STOP_BOT_STOPPED_ROLE_ID"),
 		intents:        discordgo.IntentDirectMessages,
 		removeCommands: true,
 	}
-	return &sb, nil
+	return &sb
 }
+
+var sb *StopBot
 
 func (sb StopBot) run() (*discordgo.Session, error) {
 
@@ -95,10 +99,7 @@ func (sb StopBot) KillStopBot(s *discordgo.Session) {
 }
 
 func RunStopBot() {
-	sb, err := initStopBot()
-	if err != nil {
-		log.Fatal(err.Error())
-	}
+	sb = initStopBot()
 
 	s, err := sb.run()
 	if err != nil {

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -78,6 +79,7 @@ var (
 	}
 )
 
+// Stops the User
 func stopUser(s *discordgo.Session, i *discordgo.InteractionCreate,
 	u *discordgo.User, dur int64) {
 
@@ -92,8 +94,27 @@ func stopUser(s *discordgo.Session, i *discordgo.InteractionCreate,
 		log.Println(err)
 	}
 
-	// s.GuildMemberNickname(m.GuildID, m.User.ID, "STOP "+m.Nick)
+	// Check if User is already stopped, if so, we don't modify nickname
+	modNick := strings.HasSuffix(m.Nick, " [Stopped]")
+
+	s.GuildMemberRoleAdd(i.GuildID, u.ID, sb.stoppedRoleID)
+	s.GuildMemberMute(i.GuildID, u.ID, true)
+	if !modNick {
+		s.GuildMemberNickname(i.GuildID, u.ID, m.Nick+" [Stopped]")
+	}
 	s.ChannelMessageSend(i.ChannelID, "<@"+m.User.ID+"> has been put in timeout for "+fmt.Sprintf("%d", dur)+" minutes")
+
+	// Waits the duration the command was given
+	// Considered Channels for this, but I don't see
+	// the benefit compared to simple wait
 	time.Sleep(d)
+
+	s.GuildMemberRoleRemove(i.GuildID, u.ID, sb.stoppedRoleID)
+	s.GuildMemberMute(i.GuildID, u.ID, false)
+	if err != nil {
+		log.Println(err)
+	}
+
+	s.GuildMemberNickname(i.GuildID, u.ID, strings.TrimSuffix(m.Nick, " [Stopped]"))
 	s.ChannelMessageSend(i.ChannelID, "<@"+m.User.ID+"> timeout has ended. Be less annoying next time...")
 }
