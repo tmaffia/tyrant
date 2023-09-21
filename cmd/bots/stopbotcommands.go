@@ -20,7 +20,7 @@ var (
 			Options: []discord.ApplicationCommandOption{
 				discord.ApplicationCommandOptionUser{
 					Name:        "user",
-					Description: "User option",
+					Description: "User",
 					Required:    true,
 				},
 				discord.ApplicationCommandOptionInt{
@@ -40,7 +40,7 @@ func commandListener(e *events.ApplicationCommandInteractionCreate) {
 	if data.CommandName() == "stop" {
 		err := e.CreateMessage(discord.NewMessageCreateBuilder().
 			SetContent("You have stopped a user! " +
-				"They must have fucking sucked\n").
+				"They must have been annoying\n").
 			Build(),
 		)
 		if err != nil {
@@ -92,12 +92,21 @@ func stopUser(e *events.ApplicationCommandInteractionCreate,
 
 	_, err = e.Client().Rest().UpdateMember(*e.GuildID(), u.ID, update)
 	if err != nil {
-		e.Client().Logger().Info("error updating member: ", err)
+		if strings.HasPrefix(err.Error(), "40032:") {
+			_, err = e.Client().Rest().UpdateMember(*e.GuildID(), u.ID, discord.MemberUpdate{
+				Nick: update.Nick,
+			})
+			if err != nil {
+				e.Client().Logger().Error("error updating member: ", err)
+			}
+		} else {
+			e.Client().Logger().Error("error updating member: ", err)
+		}
 	}
 	_, err = e.Client().Rest().CreateMessage(
 		e.Channel().ID(),
 		discord.NewMessageCreateBuilder().SetContent("<@"+u.ID.String()+
-			" has been put in timeout for "+fmt.Sprintf("%d", d)+" minutes").Build(),
+			"> has been put in timeout for "+fmt.Sprintf("%d", d)+" minutes").Build(),
 	)
 	if err != nil {
 		e.Client().Logger().Error("error creating message: ", err)
@@ -121,15 +130,24 @@ func stopUser(e *events.ApplicationCommandInteractionCreate,
 
 	_, err = e.Client().Rest().UpdateMember(*e.GuildID(), u.ID, update)
 	if err != nil {
-		e.Client().Logger().Info("error updating member: ", err)
+		if strings.HasPrefix(err.Error(), "40032:") {
+			_, err = e.Client().Rest().UpdateMember(*e.GuildID(), u.ID, discord.MemberUpdate{
+				Nick: update.Nick,
+			})
+			if err != nil {
+				e.Client().Logger().Error("error updating member: ", err)
+			}
+		} else {
+			e.Client().Logger().Error("error updating member: ", err)
+		}
 	}
+
 	_, err = e.Client().Rest().CreateMessage(
 		e.Channel().ID(),
 		discord.NewMessageCreateBuilder().SetContent("<@"+u.ID.String()+
-			" is now unmuted. Be less annoying please...").Build(),
+			"> is now unmuted. Try to be less annoying please...").Build(),
 	)
 	if err != nil {
 		e.Client().Logger().Error("error creating message: ", err)
 	}
-
 }

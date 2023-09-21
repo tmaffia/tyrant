@@ -100,7 +100,7 @@ func RunStopBot() {
 
 	defer client.Close(context.TODO())
 
-	log.Infof("example is now running. Press CTRL-C to exit.")
+	log.Infof("Stop Bot is now running. Press CTRL-C to exit.")
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-s
