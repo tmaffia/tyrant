@@ -90,14 +90,18 @@ func stopUser(e *events.ApplicationCommandInteractionCreate,
 		e.Client().Logger().Error("error setting stopped role: ", err)
 	}
 
-	m, err = e.Client().Rest().UpdateMember(*e.GuildID(), u.ID, update)
+	_, err = e.Client().Rest().UpdateMember(*e.GuildID(), u.ID, update)
 	if err != nil {
-		e.Client().Logger().Error("error updating member: ", err)
+		e.Client().Logger().Info("error updating member: ", err)
 	}
-	err = e.CreateMessage(
-		discord.NewMessageCreateBuilder().SetContent("<@" + u.ID.String() +
-			" has been put in timeout for " + fmt.Sprintf("%d", dur) + " minutes").Build(),
+	_, err = e.Client().Rest().CreateMessage(
+		e.Channel().ID(),
+		discord.NewMessageCreateBuilder().SetContent("<@"+u.ID.String()+
+			" has been put in timeout for "+fmt.Sprintf("%d", d)+" minutes").Build(),
 	)
+	if err != nil {
+		e.Client().Logger().Error("error creating message: ", err)
+	}
 
 	// Waits the duration the command was given
 	// Considered Channels for this, but I don't see
@@ -115,9 +119,17 @@ func stopUser(e *events.ApplicationCommandInteractionCreate,
 	update.Mute = &mute
 	update.Nick = &nick
 
-	m, err = e.Client().Rest().UpdateMember(*e.GuildID(), u.ID, update)
-	err = e.CreateMessage(
-		discord.NewMessageCreateBuilder().SetContent("<@" + u.ID.String() +
+	_, err = e.Client().Rest().UpdateMember(*e.GuildID(), u.ID, update)
+	if err != nil {
+		e.Client().Logger().Info("error updating member: ", err)
+	}
+	_, err = e.Client().Rest().CreateMessage(
+		e.Channel().ID(),
+		discord.NewMessageCreateBuilder().SetContent("<@"+u.ID.String()+
 			" is now unmuted. Be less annoying please...").Build(),
 	)
+	if err != nil {
+		e.Client().Logger().Error("error creating message: ", err)
+	}
+
 }

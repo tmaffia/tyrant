@@ -1,0 +1,24 @@
+func sendSound(s *discordgo.Session, i *discordgo.InteractionCreate, sound string) {
+	g, err := s.Guild(i.GuildID)
+	channel := getMemberChannel(i.Member, g)
+	v, err := s.ChannelVoiceJoin(i.GuildID, i.ChannelID, false, true)
+	if err != nil {
+		log.Println(err)
+	}
+
+	// Play the sound
+	v.Speaking(true)
+	time.Sleep(5 * time.Second)
+	v.Speaking(false)
+	v.Disconnect()
+}
+
+func getMemberChannel(m *discordgo.Member, g *discordgo.Guild) *discordgo.Channel {
+	for _, v := range g.VoiceStates {
+		if v.UserID == m.User.ID {
+			c, _ := sb.Session.State.Channel(v.ChannelID)
+			return c
+		}
+	}
+	return nil
+}
