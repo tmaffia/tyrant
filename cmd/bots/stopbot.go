@@ -1,25 +1,29 @@
 package main
 
 import (
+	"context"
 	"errors"
-	"log"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/log"
+
+	"github.com/disgoorg/disgo"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
 )
 
 type StopBot struct {
-	botToken           string
-	appID              string
-	publicKey          string
-	guildID            string
-	stoppedRoleID      string
-	intents            discordgo.Intent
+	botToken      string
+	appID         string
+	publicKey     string
+	guildID       string
+	stoppedRoleID string
+	// intents            disgo.Intent
 	removeCommands     bool
-	registeredCommands []*discordgo.ApplicationCommand
+	registeredCommands []discord.ApplicationCommand
 }
 
 func initStopBot() *StopBot {
@@ -27,89 +31,79 @@ func initStopBot() *StopBot {
 	if err != nil {
 		removeCommands = false
 	}
-	sb := StopBot{
-		botToken:       os.Getenv("STOP_BOT_TOKEN"),
-		appID:          os.Getenv("STOP_BOT_APP_ID"),
-		publicKey:      os.Getenv("STOP_BOT_PUBLIC_KEY"),
-		guildID:        "",
-		stoppedRoleID:  os.Getenv("STOP_BOT_STOPPED_ROLE_ID"),
-		intents:        discordgo.IntentDirectMessages,
+	stopBot = StopBot{
+		botToken:      os.Getenv("STOP_BOT_TOKEN"),
+		appID:         os.Getenv("STOP_BOT_APP_ID"),
+		publicKey:     os.Getenv("STOP_BOT_PUBLIC_KEY"),
+		guildID:       "",
+		stoppedRoleID: os.Getenv("STOP_BOT_STOPPED_ROLE_ID"),
+		// intents:        discordgo.IntentDirectMessages,
 		removeCommands: removeCommands,
 	}
-	return &sb
+	return &stopBot
 }
 
-var sb *StopBot
+var stopBot StopBot
 
-func (sb StopBot) run() (*discordgo.Session, error) {
+func (sb *StopBot) run() (bot.Client, error) {
 
 	if sb.botToken == "" ||
 		sb.appID == "" ||
 		sb.publicKey == "" {
-		return nil, errors.New("ENV Variables are not set properly")
+		return nil, errors.New("missing required environment variables")
 	}
 
-	s, err := discordgo.New("Bot " + sb.botToken)
+	client, err := disgo.New(sb.botToken,
+		bot.WithDefaultGateway(),
+		bot.WithEventListenerFunc(commandListener),
+	)
 	if err != nil {
-		log.Println(err.Error())
+		log.Fatal("error while creating bot client: ", err)
+		return nil, err
 	}
 
-	s.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-		log.Printf("Logged in as: %v#%v", s.State.User.Username, s.State.User.Discriminator)
-	})
+	sb.registeredCommands, _ = client.Rest().SetGlobalCommands(client.ApplicationID(), commands)
 
-	s.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
-			h(s, i)
-		}
-	})
-
-	sb.registeredCommands = make([]*discordgo.ApplicationCommand, len(commands))
-	err = s.Open()
 	if err != nil {
-		return nil, errors.New("error opening Discord session for stop bot")
+		log.Fatal("error while registering commands: ", err)
+		return nil, err
 	}
 
-	for i, v := range commands {
-		cmd, err := s.ApplicationCommandCreate(s.State.User.ID, sb.guildID, v)
-		if err != nil {
-			log.Panicf("Cannot create '%v' command: %v", v.Name, err)
-		}
-		sb.registeredCommands[i] = cmd
+	if err = client.OpenGateway(context.TODO()); err != nil {
+		log.Fatal("error while connecting to gateway: ", err)
+		return nil, err
 	}
 
-	log.Println("Stop Bot is now running")
-	return s, nil
+	return client, nil
 }
 
-func (sb StopBot) KillStopBot(s *discordgo.Session) {
+func (sb StopBot) KillStopBot(client bot.Client) {
 	if sb.removeCommands {
-		log.Println("Removing commands...")
+		log.Info("Removing commands...")
 
-		c, _ := s.ApplicationCommands(sb.appID, sb.guildID)
-		for _, cmd := range c {
-			log.Println("Unregistering: " + cmd.Name)
-			s.ApplicationCommandDelete(s.State.User.ID, sb.guildID, cmd.ID)
+		for _, c := range sb.registeredCommands {
+			log.Info("Unregistering: " + c.Name())
+			client.Rest().DeleteGlobalCommand(client.ApplicationID(), c.ID())
 		}
 	}
 
-	log.Println("Gracefully shutting down.")
+	log.Info("Gracefully shutting down.")
 }
 
 func RunStopBot() {
-	sb = initStopBot()
+	sb := initStopBot()
 
-	s, err := sb.run()
+	client, err := sb.run()
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	defer s.Close()
+	defer client.Close(context.TODO())
 
-	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-	log.Println("Press Ctrl+C to exit")
-	<-sc
+	log.Infof("example is now running. Press CTRL-C to exit.")
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+	<-s
 
-	sb.KillStopBot(s)
+	sb.KillStopBot(client)
 }

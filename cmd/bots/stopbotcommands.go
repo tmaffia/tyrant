@@ -2,119 +2,122 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/snowflake/v2"
 )
 
 var (
-	integerOptionMinValue = 1.0
-	commands              = []*discordgo.ApplicationCommand{
-		{
+	integerOptionMinValue = 1
+	integerOptionMaxValue = 60
+	commands              = []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "stop",
 			Description: "Command to put annoying idiots in timeout",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionUser,
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionUser{
 					Name:        "user",
 					Description: "User option",
 					Required:    true,
 				},
-				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
+				discord.ApplicationCommandOptionInt{
 					Name:        "duration",
 					Description: "Timeout duration in minutes",
 					MinValue:    &integerOptionMinValue,
-					MaxValue:    60,
+					MaxValue:    &integerOptionMaxValue,
 					Required:    false,
 				},
 			},
 		},
 	}
-
-	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"stop": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			// Access options in the order provided by the user.
-			options := i.ApplicationCommandData().Options
-
-			// Or convert the slice into a map
-			optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
-			for _, opt := range options {
-				optionMap[opt.Name] = opt
-			}
-
-			// This example stores the provided arguments in an []interface{}
-			// which will be used to format the bot's response
-			margs := make([]interface{}, 0, len(options))
-			msgformat := "You have Stopped a User! " +
-				"They must have fucking sucked\n"
-
-			var u *discordgo.User
-			var dur int64
-			if opt, ok := optionMap["user"]; ok {
-				u = opt.UserValue(nil)
-			}
-
-			if opt, ok := optionMap["duration"]; ok {
-				dur = opt.IntValue()
-			} else {
-				dur = 5
-			}
-
-			go stopUser(s, i, u, dur)
-
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				// Ignore type for now, they will be discussed in "responses"
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: fmt.Sprintf(
-						msgformat,
-						margs...,
-					),
-				},
-			})
-		},
-	}
 )
 
-// Stops the User
-func stopUser(s *discordgo.Session, i *discordgo.InteractionCreate,
-	u *discordgo.User, dur int64) {
+func commandListener(e *events.ApplicationCommandInteractionCreate) {
+	data := e.SlashCommandInteractionData()
+	if data.CommandName() == "stop" {
+		err := e.CreateMessage(discord.NewMessageCreateBuilder().
+			SetContent("You have stopped a user! " +
+				"They must have fucking sucked\n").
+			Build(),
+		)
+		if err != nil {
+			e.Client().Logger().Error("error on sending response: ", err)
+		}
 
-	d, err := time.ParseDuration(fmt.Sprintf("%dm", dur))
+		u := data.User("user")
+		d := data.Int("duration")
+
+		go stopUser(e, u, d)
+	}
+}
+
+// Stops the User
+func stopUser(e *events.ApplicationCommandInteractionCreate,
+	u discord.User, d int) {
+
+	dur, _ := time.ParseDuration(fmt.Sprintf("%dm", d))
+	m, err := e.Client().Rest().GetMember(
+		*e.GuildID(),
+		u.ID,
+	)
+
 	if err != nil {
-		log.Println(err)
+		e.Client().Logger().Error("error retrieving member to stop: ", err)
 	}
 
-	g, _ := s.Guild(i.GuildID)
-	m, err := s.GuildMember(g.ID, u.ID)
+	stoppedRole, err := snowflake.Parse(stopBot.stoppedRoleID)
 	if err != nil {
-		log.Println(err)
+		e.Client().Logger().Error("error retrieving stopped role: ", err)
+	}
+
+	// Slightly confusing and seemingly unnecessary pointer usage in this library
+	mute := true
+	update := discord.MemberUpdate{
+		Mute: &mute,
 	}
 
 	// Check if User is already stopped, if so, we don't modify nickname
-	modNick := strings.HasSuffix(m.Nick, " [Stopped]")
-
-	s.GuildMemberRoleAdd(i.GuildID, u.ID, sb.stoppedRoleID)
-	s.GuildMemberMute(i.GuildID, u.ID, true)
-	if !modNick {
-		s.GuildMemberNickname(i.GuildID, u.ID, m.Nick+" [Stopped]")
+	if !strings.HasSuffix(*m.Nick, " [Stopped]") {
+		nick := *m.Nick + " [Stopped]"
+		update.Nick = &nick
 	}
-	s.ChannelMessageSend(i.ChannelID, "<@"+m.User.ID+"> has been put in timeout for "+fmt.Sprintf("%d", dur)+" minutes")
+
+	err = e.Client().Rest().AddMemberRole(*e.GuildID(), u.ID, stoppedRole)
+	if err != nil {
+		e.Client().Logger().Error("error setting stopped role: ", err)
+	}
+
+	m, err = e.Client().Rest().UpdateMember(*e.GuildID(), u.ID, update)
+	if err != nil {
+		e.Client().Logger().Error("error updating member: ", err)
+	}
+	err = e.CreateMessage(
+		discord.NewMessageCreateBuilder().SetContent("<@" + u.ID.String() +
+			" has been put in timeout for " + fmt.Sprintf("%d", dur) + " minutes").Build(),
+	)
 
 	// Waits the duration the command was given
 	// Considered Channels for this, but I don't see
 	// the benefit compared to simple wait
-	time.Sleep(d)
+	time.Sleep(dur)
 
-	s.GuildMemberRoleRemove(i.GuildID, u.ID, sb.stoppedRoleID)
-	s.GuildMemberMute(i.GuildID, u.ID, false)
+	err = e.Client().Rest().RemoveMemberRole(*e.GuildID(), u.ID, stoppedRole)
 	if err != nil {
-		log.Println(err)
+		e.Client().Logger().Error("error unsetting stopped role: ", err)
 	}
 
-	s.GuildMemberNickname(i.GuildID, u.ID, strings.TrimSuffix(m.Nick, " [Stopped]"))
-	s.ChannelMessageSend(i.ChannelID, "<@"+m.User.ID+"> timeout has ended. Be less annoying next time...")
+	// Super annoying
+	mute = false
+	nick := strings.TrimSuffix(*m.Nick, " [Stopped]")
+	update.Mute = &mute
+	update.Nick = &nick
+
+	m, err = e.Client().Rest().UpdateMember(*e.GuildID(), u.ID, update)
+	err = e.CreateMessage(
+		discord.NewMessageCreateBuilder().SetContent("<@" + u.ID.String() +
+			" is now unmuted. Be less annoying please...").Build(),
+	)
 }
