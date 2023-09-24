@@ -9,6 +9,7 @@ import (
 
 	"github.com/disgoorg/log"
 	"github.com/disgoorg/snowflake/v2"
+	"github.com/joho/godotenv"
 
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
@@ -99,7 +100,12 @@ func (tyrant Tyrant) KillTyrant(client bot.Client) {
 	log.Info("Gracefully shutting down.")
 }
 
-func RunTyrant() {
+func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Debug(err)
+	}
+
 	tyrant := initTyrant()
 
 	client, err := tyrant.run()

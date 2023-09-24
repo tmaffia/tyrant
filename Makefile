@@ -1,12 +1,12 @@
 .DEFAULT_GOAL := build
 
-BINARY_NAME=discord-bots
+BINARY_NAME=tyrant
 DOCKERHUB_USER=szerated
 CLEAN_CONTAINERS=docker ps -a | awk '{ print $$1,$$2 }' | grep ${BINARY_NAME} | awk '{print $$1 }' | xargs -I {} docker rm {}
 
 
 ifndef ${TAG}
-TAG = latest
+	TAG = latest
 endif
 
 

@@ -112,6 +112,7 @@ func writeOpus(w io.Writer) {
 func stopUser(e *events.ApplicationCommandInteractionCreate, m *discord.Member) {
 
 	vs, connected := e.Client().Caches().VoiceState(m.GuildID, m.User.ID)
+
 	s := make(chan os.Signal, 1)
 	update := discord.MemberUpdate{}
 
