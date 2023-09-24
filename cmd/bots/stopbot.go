@@ -9,52 +9,60 @@ import (
 	"syscall"
 
 	"github.com/disgoorg/log"
+	"github.com/disgoorg/snowflake/v2"
 
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/gateway"
 )
 
-type StopBot struct {
-	botToken      string
-	appID         string
-	publicKey     string
-	guildID       string
-	stoppedRoleID string
-	// intents            disgo.Intent
+type Tyrant struct {
+	botToken           string
+	appID              string
+	publicKey          string
+	guildID            string
+	stoppedRoleID      snowflake.ID
 	removeCommands     bool
 	registeredCommands []discord.ApplicationCommand
+	client             *bot.Client
 }
 
-func initStopBot() *StopBot {
+var tyr Tyrant
+
+func initTyrant() *Tyrant {
+	stoppedRoleId, err := snowflake.Parse(os.Getenv("TYRANT_STOPPED_ROLE_ID"))
+	if err != nil {
+		log.Fatal("error getting stopped role: ", err)
+	}
 	removeCommands, err := strconv.ParseBool(os.Getenv("REMOVE_COMMANDS"))
 	if err != nil {
 		removeCommands = false
 	}
-	stopBot = StopBot{
-		botToken:      os.Getenv("STOP_BOT_TOKEN"),
-		appID:         os.Getenv("STOP_BOT_APP_ID"),
-		publicKey:     os.Getenv("STOP_BOT_PUBLIC_KEY"),
-		guildID:       "",
-		stoppedRoleID: os.Getenv("STOP_BOT_STOPPED_ROLE_ID"),
-		// intents:        discordgo.IntentDirectMessages,
+	tyr = Tyrant{
+		botToken:       os.Getenv("TYRANT_TOKEN"),
+		appID:          os.Getenv("TYRANT_APP_ID"),
+		publicKey:      os.Getenv("TYRANT_PUBLIC_KEY"),
+		guildID:        "",
+		stoppedRoleID:  stoppedRoleId,
 		removeCommands: removeCommands,
 	}
-	return &stopBot
+	return &tyr
 }
 
-var stopBot StopBot
+func (tyrant *Tyrant) run() (bot.Client, error) {
 
-func (sb *StopBot) run() (bot.Client, error) {
-
-	if sb.botToken == "" ||
-		sb.appID == "" ||
-		sb.publicKey == "" {
+	if tyrant.botToken == "" ||
+		tyrant.appID == "" ||
+		tyrant.publicKey == "" {
 		return nil, errors.New("missing required environment variables")
 	}
 
-	client, err := disgo.New(sb.botToken,
-		bot.WithDefaultGateway(),
+	client, err := disgo.New(tyrant.botToken,
+		bot.WithGatewayConfigOpts(gateway.WithIntents(
+			gateway.IntentGuildVoiceStates,
+			gateway.IntentGuildMessages,
+		)),
 		bot.WithEventListenerFunc(commandListener),
 	)
 	if err != nil {
@@ -62,7 +70,8 @@ func (sb *StopBot) run() (bot.Client, error) {
 		return nil, err
 	}
 
-	sb.registeredCommands, _ = client.Rest().SetGlobalCommands(client.ApplicationID(), commands)
+	tyrant.client = &client
+	tyrant.registeredCommands, _ = client.Rest().SetGlobalCommands(client.ApplicationID(), commands)
 
 	if err != nil {
 		log.Fatal("error while registering commands: ", err)
@@ -77,11 +86,11 @@ func (sb *StopBot) run() (bot.Client, error) {
 	return client, nil
 }
 
-func (sb StopBot) KillStopBot(client bot.Client) {
-	if sb.removeCommands {
+func (tyrant Tyrant) KillTyrant(client bot.Client) {
+	if tyrant.removeCommands {
 		log.Info("Removing commands...")
 
-		for _, c := range sb.registeredCommands {
+		for _, c := range tyrant.registeredCommands {
 			log.Info("Unregistering: " + c.Name())
 			client.Rest().DeleteGlobalCommand(client.ApplicationID(), c.ID())
 		}
@@ -90,20 +99,20 @@ func (sb StopBot) KillStopBot(client bot.Client) {
 	log.Info("Gracefully shutting down.")
 }
 
-func RunStopBot() {
-	sb := initStopBot()
+func RunTyrant() {
+	tyrant := initTyrant()
 
-	client, err := sb.run()
+	client, err := tyrant.run()
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
 	defer client.Close(context.TODO())
 
-	log.Infof("Stop Bot is now running. Press CTRL-C to exit.")
+	log.Infof("Tyrant is now running. Press CTRL-C to exit.")
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-s
 
-	sb.KillStopBot(client)
+	tyrant.KillTyrant(client)
 }
