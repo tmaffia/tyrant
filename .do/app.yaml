@@ -9,19 +9,19 @@ region: nyc
 workers:
 - dockerfile_path: Dockerfile
   envs:
-  - key: STOP_BOT_TOKEN
+  - key: TYRANT_TOKEN
     scope: RUN_AND_BUILD_TIME
     type: SECRET
     value: EV[1:2wFdeW80LRz+VN8B2QEDIHCgb+as3Lmv:8/S5LVFxuEj7/1Pp+wlssQUj17Bft4sSRr2y24IGNwQfurHFf5ag3dzf9d8ONlOuxpxaMOZLVo031TR3S5S6+WhjE90yA9gwE8W0epA0QmsSulQ55P/OwQ==]
-  - key: STOP_BOT_APP_ID
+  - key: TYRANT_APP_ID
     scope: RUN_AND_BUILD_TIME
     type: SECRET
     value: EV[1:XMtpWywLpwpKewyktso7X57qR371eLe1:8KupIOjCYAeZauKesZxxkwbFo8xB0HExPkWqVhkrl7kPM2M=]
-  - key: STOP_BOT_PUBLIC_KEY
+  - key: TYRANT_PUBLIC_KEY
     scope: RUN_AND_BUILD_TIME
     type: SECRET
     value: EV[1:vFR21IU+H7zeOrctKw7LZocYyTVo8oHw:tlQXEPxuaB7qJd4UYQTeqJ7KPlXjo2zYfs4jvytzvaFmn1PjDS4WnOBmAtbgTQisXnN7evSFfHC44YMsCC1CiFqvQs6HwpOAjO1vDFU3DLI=]
-  - key: STOP_BOT_STOPPED_ROLE_ID
+  - key: TYRANT_STOPPED_ROLE_ID
     scope: RUN_AND_BUILD_TIME
     type: SECRET
     value: EV[1:bC8jWhcJIy8tLmyHgjn/NiU55BAqAz+x:vtOxuwVOSZAE+YW764qRO4BjrsJJ9+a1942r7IhF0lSsiNs=]
@@ -35,5 +35,5 @@ workers:
     repo: tmaffia/discord-bots
   instance_count: 1
   instance_size_slug: basic-xxs
-  name: discord-bots
+  name: tyrant
   source_dir: /
