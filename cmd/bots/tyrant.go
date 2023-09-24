@@ -53,7 +53,7 @@ func initTyrant() *Tyrant {
 	if tyrant.botToken == "" ||
 		tyrant.appID == "" ||
 		tyrant.publicKey == "" {
-		panic("missing required environment variables")
+		log.Fatal("missing required environment variables")
 	}
 	return &tyrant
 }

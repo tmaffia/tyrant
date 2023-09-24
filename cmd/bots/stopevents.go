@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
@@ -16,7 +15,9 @@ import (
 	"github.com/disgoorg/snowflake/v2"
 )
 
-// Stops the User
+// Stop application command
+// This command will stop a user for a specified amount of time
+// If no time is specified, the user will be stopped for 5 minutes
 func stopCommand(e *events.ApplicationCommandInteractionCreate,
 	u discord.User, d int) {
 
@@ -54,14 +55,14 @@ func stopCommand(e *events.ApplicationCommandInteractionCreate,
 
 // Plays sound effect when stopping user
 func playStopSoundEffect(e *events.ApplicationCommandInteractionCreate,
-	ch *snowflake.ID, closeChan chan os.Signal) {
+	ch *snowflake.ID, closeChan chan os.Signal) error {
 
 	conn := e.Client().VoiceManager().CreateConn(*e.GuildID())
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	if err := conn.Open(ctx, *ch, false, false); err != nil {
-		panic("error connecting to voice channel: " + err.Error())
+		return err
 	}
 	defer func() {
 		closeCtx, closeCancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -70,42 +71,49 @@ func playStopSoundEffect(e *events.ApplicationCommandInteractionCreate,
 	}()
 
 	if err := conn.SetSpeaking(ctx, voice.SpeakingFlagMicrophone); err != nil {
-		panic("error setting speaking flag: " + err.Error())
+		return err
 	}
 
 	writeOpus(conn.UDP())
 	closeChan <- syscall.SIGTERM
+	return nil
 }
 
-func writeOpus(w io.Writer) {
-	file, err := os.Open("audio/shush-up.opus")
+func writeOpus(w io.Writer) error {
+	// file, err := os.Open("../../audio/nico.dca")
+	// file, err := os.Open("../../audio/shush-up.dca")
+	file, err := os.Open("../../audio/shush-up-nancy.opus")
 	if err != nil {
-		panic("error opening file: " + err.Error())
+		return err
 	}
-	ticker := time.NewTicker(time.Millisecond * 20)
-	defer ticker.Stop()
 
-	var lenBuf [4]byte
-	for range ticker.C {
-		_, err = io.ReadFull(file, lenBuf[:])
-		if err != nil {
-			if err == io.EOF {
-				_ = file.Close()
-				return
-			}
-			panic("error reading file: " + err.Error())
-		}
+	io.Copy(w, file)
+	return nil
+	// ticker := time.NewTicker(time.Millisecond * 20)
+	// defer ticker.Stop()
 
-		// Read the integer
-		frameLen := int64(binary.LittleEndian.Uint32(lenBuf[:]))
+	// var lenBuf [4]byte
+	// for range ticker.C {
+	// 	_, err = io.ReadFull(file, lenBuf[:])
+	// 	if err != nil {
+	// 		if err == io.EOF {
+	// 			_ = file.Close()
+	// 			return nil
+	// 		}
+	// 		return err
+	// 	}
 
-		// Copy the frame.
-		_, err = io.CopyN(w, file, frameLen)
-		if err != nil && err != io.EOF {
-			_ = file.Close()
-			return
-		}
-	}
+	// 	// Read the integer
+	// 	frameLen := int64(binary.LittleEndian.Uint32(lenBuf[:]))
+
+	// Copy the frame.
+	// 	_, err = io.CopyN(w, file, frameLen)
+	// 	if err != nil && err != io.EOF {
+	// 		_ = file.Close()
+	// 		return nil
+	// 	}
+	// }
+	// return nil
 }
 
 // Initiate stopping. This will stop

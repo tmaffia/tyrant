@@ -1,4 +1,4 @@
-module discord-bots
+module tyrant
 
 require (
 	github.com/disgoorg/disgo v0.16.9
