@@ -13,6 +13,7 @@ import (
 
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/cache"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/gateway"
 )
@@ -28,7 +29,7 @@ type Tyrant struct {
 	client             *bot.Client
 }
 
-var tyr Tyrant
+var tyrant Tyrant
 
 func initTyrant() *Tyrant {
 	stoppedRoleId, err := snowflake.Parse(os.Getenv("TYRANT_STOPPED_ROLE_ID"))
@@ -41,7 +42,7 @@ func initTyrant() *Tyrant {
 		removeCommands = false
 	}
 
-	tyr = Tyrant{
+	tyrant = Tyrant{
 		botToken:       os.Getenv("TYRANT_TOKEN"),
 		appID:          os.Getenv("TYRANT_APP_ID"),
 		publicKey:      os.Getenv("TYRANT_PUBLIC_KEY"),
@@ -49,30 +50,30 @@ func initTyrant() *Tyrant {
 		stoppedRoleID:  stoppedRoleId,
 		removeCommands: removeCommands,
 	}
-	if tyr.botToken == "" ||
-		tyr.appID == "" ||
-		tyr.publicKey == "" {
+	if tyrant.botToken == "" ||
+		tyrant.appID == "" ||
+		tyrant.publicKey == "" {
 		panic("missing required environment variables")
 	}
-	return &tyr
+	return &tyrant
 }
 
-func (tyrant *Tyrant) run() (bot.Client, error) {
+func (tyr *Tyrant) run() (bot.Client, error) {
 
-	client, err := disgo.New(tyrant.botToken,
+	client, err := disgo.New(tyr.botToken,
 		bot.WithGatewayConfigOpts(gateway.WithIntents(
 			gateway.IntentGuildVoiceStates,
-			gateway.IntentGuildMessages,
 		)),
 		bot.WithEventListenerFunc(commandListener),
+		bot.WithCacheConfigOpts(cache.WithCaches(cache.FlagVoiceStates)),
 	)
 	if err != nil {
 		log.Fatal("error while creating bot client: ", err)
 		return nil, err
 	}
 
-	tyrant.client = &client
-	tyrant.registeredCommands, _ = client.Rest().SetGlobalCommands(client.ApplicationID(), commands)
+	tyr.client = &client
+	tyr.registeredCommands, _ = client.Rest().SetGlobalCommands(client.ApplicationID(), commands)
 
 	if err != nil {
 		log.Fatal("error while registering commands: ", err)
@@ -87,11 +88,11 @@ func (tyrant *Tyrant) run() (bot.Client, error) {
 	return client, nil
 }
 
-func (tyrant Tyrant) KillTyrant(client bot.Client) {
-	if tyrant.removeCommands {
+func (tyr Tyrant) KillTyrant(client bot.Client) {
+	if tyr.removeCommands {
 		log.Info("Removing commands...")
 
-		for _, c := range tyrant.registeredCommands {
+		for _, c := range tyr.registeredCommands {
 			log.Info("Unregistering: " + c.Name())
 			client.Rest().DeleteGlobalCommand(client.ApplicationID(), c.ID())
 		}
@@ -106,9 +107,9 @@ func main() {
 		log.Debug(err)
 	}
 
-	tyrant := initTyrant()
+	tyr := initTyrant()
 
-	client, err := tyrant.run()
+	client, err := tyr.run()
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -120,5 +121,5 @@ func main() {
 	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-s
 
-	tyrant.KillTyrant(client)
+	tyr.KillTyrant(client)
 }

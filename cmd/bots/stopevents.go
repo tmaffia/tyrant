@@ -128,7 +128,7 @@ func stopUser(e *events.ApplicationCommandInteractionCreate, m *discord.Member) 
 		update.Nick = &nick
 	}
 
-	err := e.Client().Rest().AddMemberRole(*e.GuildID(), m.User.ID, tyr.stoppedRoleID)
+	err := e.Client().Rest().AddMemberRole(*e.GuildID(), m.User.ID, tyrant.stoppedRoleID)
 	if err != nil {
 		e.Client().Logger().Error("error setting stopped role: ", err)
 	}
@@ -141,7 +141,7 @@ func stopUser(e *events.ApplicationCommandInteractionCreate, m *discord.Member) 
 
 func unstopUser(e *events.ApplicationCommandInteractionCreate, m *discord.Member) {
 	update := discord.MemberUpdate{}
-	err := e.Client().Rest().RemoveMemberRole(*e.GuildID(), m.User.ID, tyr.stoppedRoleID)
+	err := e.Client().Rest().RemoveMemberRole(*e.GuildID(), m.User.ID, tyrant.stoppedRoleID)
 	if err != nil {
 		e.Client().Logger().Error("error unsetting stopped role: ", err)
 	}
