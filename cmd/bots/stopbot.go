@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/signal"
 	"strconv"
@@ -35,10 +34,12 @@ func initTyrant() *Tyrant {
 	if err != nil {
 		log.Fatal("error getting stopped role: ", err)
 	}
+
 	removeCommands, err := strconv.ParseBool(os.Getenv("REMOVE_COMMANDS"))
 	if err != nil {
 		removeCommands = false
 	}
+
 	tyr = Tyrant{
 		botToken:       os.Getenv("TYRANT_TOKEN"),
 		appID:          os.Getenv("TYRANT_APP_ID"),
@@ -47,16 +48,15 @@ func initTyrant() *Tyrant {
 		stoppedRoleID:  stoppedRoleId,
 		removeCommands: removeCommands,
 	}
+	if tyr.botToken == "" ||
+		tyr.appID == "" ||
+		tyr.publicKey == "" {
+		panic("missing required environment variables")
+	}
 	return &tyr
 }
 
 func (tyrant *Tyrant) run() (bot.Client, error) {
-
-	if tyrant.botToken == "" ||
-		tyrant.appID == "" ||
-		tyrant.publicKey == "" {
-		return nil, errors.New("missing required environment variables")
-	}
 
 	client, err := disgo.New(tyrant.botToken,
 		bot.WithGatewayConfigOpts(gateway.WithIntents(
