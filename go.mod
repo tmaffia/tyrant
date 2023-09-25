@@ -8,6 +8,7 @@ require (
 )
 
 require (
+	github.com/disgoorg/audio v0.0.0-20230108034007-9faf157ff94b // indirect
 	github.com/disgoorg/json v1.1.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/sasha-s/go-csync v0.0.0-20210812194225-61421b77c44b // indirect
@@ -16,4 +17,4 @@ require (
 	golang.org/x/sys v0.12.0 // indirect
 )
 
-go 1.20
+go 1.21

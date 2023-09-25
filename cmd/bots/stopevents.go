@@ -9,9 +9,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/disgoorg/audio/mp3"
+	"github.com/disgoorg/audio/pcm"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/voice"
+	"github.com/disgoorg/log"
 	"github.com/disgoorg/snowflake/v2"
 )
 
@@ -74,46 +77,42 @@ func playStopSoundEffect(e *events.ApplicationCommandInteractionCreate,
 		return err
 	}
 
-	writeOpus(conn.UDP())
+	err := writeAudio(conn)
+	if err != nil {
+		log.Error("Error sending audio: ", err)
+	}
 	closeChan <- syscall.SIGTERM
 	return nil
 }
 
-func writeOpus(w io.Writer) error {
-	// file, err := os.Open("../../audio/nico.dca")
-	// file, err := os.Open("../../audio/shush-up.dca")
-	file, err := os.Open("../../audio/shush-up-nancy.opus")
+func writeAudio(conn voice.Conn) error {
+	// file, err := os.Open("audio/shush-up-nancy.opus")
+	// file, err := os.Open("audio/shush-up-nancy.mp3")
+	file, err := os.Open("../../audio/shush-up-nancy.mp3")
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
-	io.Copy(w, file)
+	mp3Provider, writer, err := mp3.NewPCMFrameProvider(nil)
+	if err != nil {
+		panic("error creating mp3 provider: " + err.Error())
+	}
+
+	buffer := pcm.NewBufferPCMProvider(mp3Provider)
+
+	opusProvider, err := pcm.NewOpusProvider(nil, buffer)
+	if err != nil {
+		panic("error creating opus provider: " + err.Error())
+	}
+
+	conn.SetOpusFrameProvider(opusProvider)
+
+	if _, err = io.Copy(writer, file); err != nil {
+		panic("error reading audio: " + err.Error())
+	}
+
 	return nil
-	// ticker := time.NewTicker(time.Millisecond * 20)
-	// defer ticker.Stop()
-
-	// var lenBuf [4]byte
-	// for range ticker.C {
-	// 	_, err = io.ReadFull(file, lenBuf[:])
-	// 	if err != nil {
-	// 		if err == io.EOF {
-	// 			_ = file.Close()
-	// 			return nil
-	// 		}
-	// 		return err
-	// 	}
-
-	// 	// Read the integer
-	// 	frameLen := int64(binary.LittleEndian.Uint32(lenBuf[:]))
-
-	// Copy the frame.
-	// 	_, err = io.CopyN(w, file, frameLen)
-	// 	if err != nil && err != io.EOF {
-	// 		_ = file.Close()
-	// 		return nil
-	// 	}
-	// }
-	// return nil
 }
 
 // Initiate stopping. This will stop
