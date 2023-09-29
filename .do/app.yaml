@@ -12,15 +12,15 @@ workers:
   - key: TYRANT_TOKEN
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-    value: EV[1:2wFdeW80LRz+VN8B2QEDIHCgb+as3Lmv:8/S5LVFxuEj7/1Pp+wlssQUj17Bft4sSRr2y24IGNwQfurHFf5ag3dzf9d8ONlOuxpxaMOZLVo031TR3S5S6+WhjE90yA9gwE8W0epA0QmsSulQ55P/OwQ==]
+    value: EV[1:vXx4Ajyh1vvqLaTr5brMO5d3XmhXaAed:xZ0LVnWMS3n8ktQFEpX/SpioVzp5btathtqoPRiy6vxuqeTiPC4tQ2eriGfQ2QOo0b8XJUAGuehDaQEkBYvI4V6Yti9QKQygs7HmEjmUCbxNIxKR1vuNVg==]
   - key: TYRANT_APP_ID
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-    value: EV[1:XMtpWywLpwpKewyktso7X57qR371eLe1:8KupIOjCYAeZauKesZxxkwbFo8xB0HExPkWqVhkrl7kPM2M=]
+    value: EV[1:kYGqaApLPY+a1pVp5Ju+ghJxxiQEDEqZ:ZqNMtYXcGb++gDFkzVlbn6ajEx2sSWhsnEad5HGt46u0nZQ=]
   - key: TYRANT_PUBLIC_KEY
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-    value: EV[1:vFR21IU+H7zeOrctKw7LZocYyTVo8oHw:tlQXEPxuaB7qJd4UYQTeqJ7KPlXjo2zYfs4jvytzvaFmn1PjDS4WnOBmAtbgTQisXnN7evSFfHC44YMsCC1CiFqvQs6HwpOAjO1vDFU3DLI=]
+    value: EV[1:VWPAiQJPhPgL7d8L0k+oPAbF7yjNpjOT:BN1W9vDGjgL1sPiWxRZl4S1bB8sCGJpobLUaw0QlKFLIGjgFZ5GmyZm0rLJI37iEIu2b4HBvQMaQnh7WCUwWiWwxEWb8csKOIdtSb7+rf0A=]
   - key: TYRANT_STOPPED_ROLE_ID
     scope: RUN_AND_BUILD_TIME
     type: SECRET
