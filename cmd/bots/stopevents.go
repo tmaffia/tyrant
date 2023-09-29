@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
@@ -9,8 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/disgoorg/audio/mp3"
-	"github.com/disgoorg/audio/pcm"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/voice"
@@ -85,32 +84,58 @@ func playStopSoundEffect(e *events.ApplicationCommandInteractionCreate,
 	return nil
 }
 
+// Cant get this to work ...
+// Getting the audio to stream using this library
+// and related related packages is not working.
 func writeAudio(conn voice.Conn) error {
-	// file, err := os.Open("audio/shush-up-nancy.opus")
+	file, err := os.Open("audio/shush-up-nancy.opus")
+	// file, err := os.Open("../../audio/shush-up-nancy.opus")
 	// file, err := os.Open("audio/shush-up-nancy.mp3")
-	file, err := os.Open("../../audio/shush-up-nancy.mp3")
+	// file, err := os.Open("../../audio/shush-up-nancy.mp3")
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	ticker := time.NewTicker(time.Millisecond * 20)
+	defer ticker.Stop()
 
-	mp3Provider, writer, err := mp3.NewPCMFrameProvider(nil)
-	if err != nil {
-		panic("error creating mp3 provider: " + err.Error())
+	var lenBuf [4]byte
+	for range ticker.C {
+		_, err = io.ReadFull(file, lenBuf[:])
+		if err != nil {
+			if err == io.EOF {
+				_ = file.Close()
+			}
+			panic("error reading file: " + err.Error())
+		}
 	}
 
-	buffer := pcm.NewBufferPCMProvider(mp3Provider)
-
-	opusProvider, err := pcm.NewOpusProvider(nil, buffer)
-	if err != nil {
-		panic("error creating opus provider: " + err.Error())
+	// Read the integer
+	frameLen := int64(binary.LittleEndian.Uint32(lenBuf[:]))
+	_, err = io.CopyN(conn.UDP(), file, frameLen)
+	if err != nil && err != io.EOF {
+		_ = file.Close()
+		return err
 	}
 
-	conn.SetOpusFrameProvider(opusProvider)
+	// defer file.Close()
 
-	if _, err = io.Copy(writer, file); err != nil {
-		panic("error reading audio: " + err.Error())
-	}
+	// mp3Provider, writer, err := mp3.NewPCMFrameProvider(nil)
+	// if err != nil {
+	// 	panic("error creating mp3 provider: " + err.Error())
+	// }
+
+	// buffer := pcm.NewBufferPCMProvider(mp3Provider)
+
+	// opusProvider, err := pcm.NewOpusProvider(nil, buffer)
+	// if err != nil {
+	// 	panic("error creating opus provider: " + err.Error())
+	// }
+
+	// conn.SetOpusFrameProvider(opusProvider)
+
+	// if _, err = io.Copy(writer, file); err != nil {
+	// 	panic("error reading audio: " + err.Error())
+	// }
 
 	return nil
 }
@@ -122,11 +147,13 @@ func stopUser(e *events.ApplicationCommandInteractionCreate, m *discord.Member) 
 
 	s := make(chan os.Signal, 1)
 	update := discord.MemberUpdate{}
+	_ = vs
+	_ = s
 
 	if connected {
 		mute := true
 		update.Mute = &mute
-		go playStopSoundEffect(e, vs.ChannelID, s)
+		// go playStopSoundEffect(e, vs.ChannelID, s)
 	}
 
 	// Check if User is already stopped, if so, we don't modify nickname
