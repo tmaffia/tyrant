@@ -13,10 +13,13 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/voice"
+	"github.com/disgoorg/log"
 	"github.com/disgoorg/snowflake/v2"
 )
 
-// Stops the User
+// Stop application command
+// This command will stop a user for a specified amount of time
+// If no time is specified, the user will be stopped for 5 minutes
 func stopCommand(e *events.ApplicationCommandInteractionCreate,
 	u discord.User, d int) {
 
@@ -54,14 +57,14 @@ func stopCommand(e *events.ApplicationCommandInteractionCreate,
 
 // Plays sound effect when stopping user
 func playStopSoundEffect(e *events.ApplicationCommandInteractionCreate,
-	ch *snowflake.ID, closeChan chan os.Signal) {
+	ch *snowflake.ID, closeChan chan os.Signal) error {
 
 	conn := e.Client().VoiceManager().CreateConn(*e.GuildID())
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	if err := conn.Open(ctx, *ch, false, false); err != nil {
-		panic("error connecting to voice channel: " + err.Error())
+		return err
 	}
 	defer func() {
 		closeCtx, closeCancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -70,17 +73,27 @@ func playStopSoundEffect(e *events.ApplicationCommandInteractionCreate,
 	}()
 
 	if err := conn.SetSpeaking(ctx, voice.SpeakingFlagMicrophone); err != nil {
-		panic("error setting speaking flag: " + err.Error())
+		return err
 	}
 
-	writeOpus(conn.UDP())
+	err := writeAudio(conn)
+	if err != nil {
+		log.Error("Error sending audio: ", err)
+	}
 	closeChan <- syscall.SIGTERM
+	return nil
 }
 
-func writeOpus(w io.Writer) {
-	file, err := os.Open("audio/shush-up.opus")
+// Cant get this to work ...
+// Getting the audio to stream using this library
+// and related related packages is not working.
+func writeAudio(conn voice.Conn) error {
+	file, err := os.Open("audio/shush-up-nancy.opus")
+	// file, err := os.Open("../../audio/shush-up-nancy.opus")
+	// file, err := os.Open("audio/shush-up-nancy.mp3")
+	// file, err := os.Open("../../audio/shush-up-nancy.mp3")
 	if err != nil {
-		panic("error opening file: " + err.Error())
+		return err
 	}
 	ticker := time.NewTicker(time.Millisecond * 20)
 	defer ticker.Stop()
@@ -91,34 +104,56 @@ func writeOpus(w io.Writer) {
 		if err != nil {
 			if err == io.EOF {
 				_ = file.Close()
-				return
 			}
 			panic("error reading file: " + err.Error())
 		}
-
-		// Read the integer
-		frameLen := int64(binary.LittleEndian.Uint32(lenBuf[:]))
-
-		// Copy the frame.
-		_, err = io.CopyN(w, file, frameLen)
-		if err != nil && err != io.EOF {
-			_ = file.Close()
-			return
-		}
 	}
+
+	// Read the integer
+	frameLen := int64(binary.LittleEndian.Uint32(lenBuf[:]))
+	_, err = io.CopyN(conn.UDP(), file, frameLen)
+	if err != nil && err != io.EOF {
+		_ = file.Close()
+		return err
+	}
+
+	// defer file.Close()
+
+	// mp3Provider, writer, err := mp3.NewPCMFrameProvider(nil)
+	// if err != nil {
+	// 	panic("error creating mp3 provider: " + err.Error())
+	// }
+
+	// buffer := pcm.NewBufferPCMProvider(mp3Provider)
+
+	// opusProvider, err := pcm.NewOpusProvider(nil, buffer)
+	// if err != nil {
+	// 	panic("error creating opus provider: " + err.Error())
+	// }
+
+	// conn.SetOpusFrameProvider(opusProvider)
+
+	// if _, err = io.Copy(writer, file); err != nil {
+	// 	panic("error reading audio: " + err.Error())
+	// }
+
+	return nil
 }
 
 // Initiate stopping. This will stop
 func stopUser(e *events.ApplicationCommandInteractionCreate, m *discord.Member) {
 
 	vs, connected := e.Client().Caches().VoiceState(m.GuildID, m.User.ID)
+
 	s := make(chan os.Signal, 1)
 	update := discord.MemberUpdate{}
+	_ = vs
+	_ = s
 
 	if connected {
 		mute := true
 		update.Mute = &mute
-		go playStopSoundEffect(e, vs.ChannelID, s)
+		// go playStopSoundEffect(e, vs.ChannelID, s)
 	}
 
 	// Check if User is already stopped, if so, we don't modify nickname
@@ -127,7 +162,7 @@ func stopUser(e *events.ApplicationCommandInteractionCreate, m *discord.Member) 
 		update.Nick = &nick
 	}
 
-	err := e.Client().Rest().AddMemberRole(*e.GuildID(), m.User.ID, tyr.stoppedRoleID)
+	err := e.Client().Rest().AddMemberRole(*e.GuildID(), m.User.ID, tyrant.stoppedRoleID)
 	if err != nil {
 		e.Client().Logger().Error("error setting stopped role: ", err)
 	}
@@ -140,7 +175,7 @@ func stopUser(e *events.ApplicationCommandInteractionCreate, m *discord.Member) 
 
 func unstopUser(e *events.ApplicationCommandInteractionCreate, m *discord.Member) {
 	update := discord.MemberUpdate{}
-	err := e.Client().Rest().RemoveMemberRole(*e.GuildID(), m.User.ID, tyr.stoppedRoleID)
+	err := e.Client().Rest().RemoveMemberRole(*e.GuildID(), m.User.ID, tyrant.stoppedRoleID)
 	if err != nil {
 		e.Client().Logger().Error("error unsetting stopped role: ", err)
 	}

@@ -32,7 +32,7 @@ workers:
   github:
     branch: main
     deploy_on_push: true
-    repo: tmaffia/discord-bots
+    repo: tmaffia/tyrant
   instance_count: 1
   instance_size_slug: basic-xxs
   name: tyrant
