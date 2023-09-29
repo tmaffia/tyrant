@@ -18,7 +18,7 @@ cleanc: clean
 	docker rmi -f ${DOCKERHUB_USER}/${BINARY_NAME}:${TAG}
 
 build: clean
-	go build -gcflags "-N -l" -o bin/${BINARY_NAME} ./...
+	go build -o bin/${BINARY_NAME} ./...
 
 buildc: cleanc
 	docker build -f Dockerfile -t ${DOCKERHUB_USER}/${BINARY_NAME}:${TAG} .
